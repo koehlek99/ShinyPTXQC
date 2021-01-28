@@ -8,7 +8,7 @@ library(yaml)
 library(waiter)
 library(shinyBS)
 library(htmlwidgets)
-library(digest)
+
 
 shinyUI(tagList(fluidPage(
   
@@ -133,8 +133,6 @@ shinyUI(tagList(fluidPage(
           conditionalPanel(condition = "input.creport == 1",
                            htmlOutput("htmlpage") 
                            )
-          
-            
         )
       )
     ),

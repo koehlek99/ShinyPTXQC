@@ -121,7 +121,7 @@ shinyServer(function(input, output, session){
     downloadButton("yamldownload", "yaml") 
   })
   output$htmld <- renderUI({
-    downloadButton("htmldownload", "html")
+    downloadButton("htmldownload", "Html")
   })
   
   ##download default yaml file 
@@ -177,8 +177,9 @@ shinyServer(function(input, output, session){
       hideElement("creport")
       hideElement("yaml.load")
       
-      
       ########################################createReport()###############################################
+      
+      w$show()
       
       if(input$dtype=="MaxQuant directory"){
         
@@ -187,94 +188,100 @@ shinyServer(function(input, output, session){
         path <- paste0(tempfile("report", tempdir(), sep))
         dir.create(path)
         file.copy(mq.dirpaths$datapath, paste0(path, sep, mq.dirpaths$name))
-        list.files(path)
+        do.call(file.remove, list(paste0(path, list.files(path, pattern = "report"))))
         
         #create report for MaxQuant directory 
-        w$show()
-        createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj)
-        w$hide()
-        
-      } 
-      if(input$dtype=="MaxQuant files"){
+        tryCatch(
+          createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj), 
+          error = function(err){
+            showNotification(HTML(paste0("The following error occured while running PTXQC: ", err, "\n Please contact PTXQC's authors", sep = "\n")), action = a(" here.", href = "https://github.com/cbielow/PTXQC", target = "_blank"), type = "err", duration = NULL)
+          }
+        )
+      } else if(input$dtype=="MaxQuant files"){
         
         ##copying MaxQuant files into temporary dir
         path.old <- dirname(input$mqfiles$datapath[1])
         path <- paste0(tempfile("report", tempdir(), sep))
         dir.create(path)
         file.copy(input$mqfiles$datapath, paste0(path, sep, input$mqfiles$name))
+        do.call(file.remove, list(paste0(path, list.files(path, pattern = "report"))))
         
         #create report for MaxQuant files 
-        w$show()
-        createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj)
-        w$hide()
-        
-      }  
-      if(input$dtype=="Mztab file"){
+        tryCatch(
+          createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj),          
+          error = function(err){
+            showNotification(HTML(paste0("The following error occured while running PTXQC: ", err, "\n Please contact PTXQC's authors", sep = "\n")), action = a(" here.", href = "https://github.com/cbielow/PTXQC", target = "_blank"), type = "err", duration = NULL)
+          }
+        )
+      }  else if(input$dtype=="Mztab file"){
         
         mztab_file <- input$file$datapath 
-        path <- paste0(dirname(mztab_file), sep)
-        
+        path <- paste0(dirname(mztab_file),sep)
+
         ##creating report for mztab file
-        w$show()
-        createReport(txt_folder = NULL, mztab_file = mztab_file, yaml_obj = yaml.obj)
-        w$hide()
-        
-      }
+        tryCatch(
+          createReport(txt_folder = NULL, mztab_file = mztab_file, yaml_obj = yaml.obj),          
+          error = function(err){
+            showNotification(HTML(paste0("The following error occured while running PTXQC: ", err, "\n Please contact PTXQC's authors", sep = "\n")), action = a(" here.", href = "https://github.com/cbielow/PTXQC", target = "_blank"), type = "err", duration = NULL)
+          }
+        )
+      } 
+      
+      w$hide()
       
       
       ############################################html output##############################################
       
       ##function for html report output
-      getPage<-function() {
+        getPage<-function(path) {
+          
+          output$created <- reactive(return(1))
+          outputOptions(output, "created", suspendWhenHidden = FALSE)
+          addResourcePath("lib", path)
+          
+          tags <- tags$html(tags$iframe(src = paste0("lib", sep, list.files(path = path, pattern = "report.*html")),
+                                        width = "100%",
+                                        height = as.numeric(input$dimension) - 100,
+                                        seamless = "seamless",
+                                        scrolling = 'yes',
+                                        id = 'htmlframe',
+                                        frameBorder = 0)
+          )
+          
+          
+          print(tags)
+        }
         
-        output$created <- reactive(return(1))
-        outputOptions(output, "created", suspendWhenHidden = FALSE)
-        addResourcePath("lib", path)
         
-        tags <- tags$html(tags$iframe(src = paste0("lib", sep, list.files(path = path, pattern = "report.*html")),
-                                      width = "100%",
-                                      height = as.numeric(input$dimension) - 100,
-                                      seamless = "seamless",
-                                      scrolling = 'yes',
-                                      id = 'htmlframe',
-                                      frameBorder = 0)
+        ##generate html output
+        output$htmlpage<-renderUI({getPage(path)})
+        
+        
+        ################################################download buttons#############################################
+        
+        ##download pdf 
+        output$pdfdownload <- downloadHandler(
+          filename = "PTXQC_Report.pdf", 
+          content = function(file){
+            file.copy(paste0(path, list.files(path, pattern = "report.*pdf")), file)
+          }
         )
         
+        ##download .yaml 
+        output$yamldownload <- downloadHandler(
+          filename = "PTXQC.yaml", 
+          content = function(file){
+            file.copy(paste0(path, list.files(path, pattern = "report.*yaml")), file)
+          }
+        )
         
-        print(tags)
-      }
-      
-      
-      ##generate html output
-      output$htmlpage<-renderUI({getPage()})
-      
-      
-      ################################################download buttons#############################################
-      
-      ##download pdf 
-      output$pdfdownload <- downloadHandler(
-        filename = "PTXQC_Report.pdf", 
-        content = function(file){
-          file.copy(paste0(path, list.files(path = path, pattern = "report.*pdf")), file)
-        }
-      )
-      
-      ##download .yaml 
-      output$yamldownload <- downloadHandler(
-        filename = "PTXQC.yaml", 
-        content = function(file){
-          file.copy(paste0(path, list.files(path = path, pattern = "report.*yaml")), file)
-        }
-      )
-      
-      ##download html 
-      output$htmldownload <- downloadHandler(
-        filename = "PTXQC_Report.html",
-        content = function(file){
-          file.copy(paste0(path, list.files(path = path, pattern = "report.*html")), file)
-        }
-      )
-      
+        ##download html 
+        output$htmldownload <- downloadHandler(
+          filename = "PTXQC_Report.html",
+          content = function(file){
+            file.copy(paste0(path, list.files(path, pattern = "report.*html")), file)
+          }
+        )
     })
   })
   
