@@ -3,7 +3,7 @@ Shiny application that integrates the R package [PTXQC](https://github.com/cbiel
 
 ## Usage 
 
-The web application is available at http://shiny.imp.fu-berlin.de/. \
+The web application is available at http://shiny.imp.fu-berlin.de. 
 
 
 
