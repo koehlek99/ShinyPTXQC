@@ -16,8 +16,7 @@ shinyUI(tagList(fluidPage(
   useShinyjs(),
   tags$script(src = "text.js"),
   
-  tags$head(tags$script('
-                        var dimension = 0;
+  tags$head(tags$script('var dimension = 0;
                         $(document).on("shiny:connected", function(e) {
                         dimension = window.innerHeight;
                         Shiny.onInputChange("dimension", dimension);
@@ -26,10 +25,22 @@ shinyUI(tagList(fluidPage(
                         dimension = window.innerHeight;
                         Shiny.onInputChange("dimension", dimension);
                         });
-                        ')
+                        '),                                                                                                        
+            tags$style(HTML("#shiny-notification-panel {
+                            top: 110px;
+                            bottom: unset;
+                            right: 0;
+                            left: 0;
+                            margin-left: 34%;
+                            margin-right: auto;
+                            width: 100%;
+                            max-width: 450px;
+                            }")
+                       )
             ),
   
-  navbarPage("Proteomics Quality Control Report", theme = shinytheme("flatly"),
+  
+  navbarPage(paste0("Proteomics Quality Control (Version ", packageVersion("PTXQC"), ")"), theme = shinytheme("flatly"),
     
     tabPanel("Report", fluid = TRUE, icon =icon("file-alt"),
       sidebarLayout(
@@ -102,19 +113,25 @@ shinyUI(tagList(fluidPage(
 
           conditionalPanel("output.created", 
 
-
-                br(),
                 br(),
                 fluidRow(
-                         column(4, align = "center",
-                                uiOutput("yamld")
-                                ),
-                         column(4, align = "center", 
+                         column(6, align = "center", 
                                 uiOutput("pdfd")
                                 ), 
-                         column(4, align = "center",
-                                uiOutput("htmld")
+                         column(6, align = "center",
+                                uiOutput("yamld")
                                 )
+                        ),
+                
+                br(),
+                
+                fluidRow(
+                        column(6, align = "center",
+                                uiOutput("htmld")
+                        ),
+                        column(6, align = "center", 
+                               uiOutput("logs")
+                        )
                 ),
                 
                 br(),

@@ -1,7 +1,7 @@
 shinyServer(function(input, output, session){
   
   ##increase upload file size
-  options(shiny.maxRequestSize=50*1024^2)
+  options(shiny.maxRequestSize=5000*1024^2)
   
   ##check on which OS the application runs
   if(.Platform$OS.type == "windows") sep <- "\\"
@@ -115,13 +115,17 @@ shinyServer(function(input, output, session){
   ###########################################download buttons##############################################
   
   output$pdfd <- renderUI({
-    downloadButton("pdfdownload", "PDF")
+    downloadButton("pdfdownload", "PDF report")
   })
   output$yamld <- renderUI({
-    downloadButton("yamldownload", "yaml") 
+    downloadButton("yamldownload", "Yaml file") 
   })
   output$htmld <- renderUI({
-    downloadButton("htmldownload", "Html")
+    downloadButton("htmldownload", "Html report")
+  })
+  
+  output$logs <- renderUI({
+    downloadButton("logdownload", " Log file ")
   })
   
   ##download default yaml file 
@@ -192,7 +196,7 @@ shinyServer(function(input, output, session){
         
         #create report for MaxQuant directory 
         tryCatch(
-          createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj), 
+          createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj, enable_log = TRUE), 
           error = function(err){
             showNotification(HTML(paste0("The following error occured while running PTXQC: ", err, "\n Please contact PTXQC's authors", sep = "\n")), action = a(" here.", href = "https://github.com/cbielow/PTXQC", target = "_blank"), type = "err", duration = NULL)
           }
@@ -208,7 +212,7 @@ shinyServer(function(input, output, session){
         
         #create report for MaxQuant files 
         tryCatch(
-          createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj),          
+          createReport(txt_folder = path, mztab_file = NULL, yaml_obj = yaml.obj, enable_log = TRUE),          
           error = function(err){
             showNotification(HTML(paste0("The following error occured while running PTXQC: ", err, "\n Please contact PTXQC's authors", sep = "\n")), action = a(" here.", href = "https://github.com/cbielow/PTXQC", target = "_blank"), type = "err", duration = NULL)
           }
@@ -220,7 +224,7 @@ shinyServer(function(input, output, session){
 
         ##creating report for mztab file
         tryCatch(
-          createReport(txt_folder = NULL, mztab_file = mztab_file, yaml_obj = yaml.obj),          
+          createReport(txt_folder = NULL, mztab_file = mztab_file, yaml_obj = yaml.obj, enable_log = TRUE),          
           error = function(err){
             showNotification(HTML(paste0("The following error occured while running PTXQC: ", err, "\n Please contact PTXQC's authors", sep = "\n")), action = a(" here.", href = "https://github.com/cbielow/PTXQC", target = "_blank"), type = "err", duration = NULL)
           }
@@ -282,6 +286,14 @@ shinyServer(function(input, output, session){
             file.copy(paste0(path, list.files(path, pattern = "report.*html")), file)
           }
         )
+        
+        ##download logs
+        output$logdownload <- downloadHandler(
+          filename = "PTXQC_Logs.",
+          content = function(file){
+            file.copy(paste0(path, list.files(path, pattern = "report.*log")), file)
+          }
+        )
     })
   })
   
@@ -303,8 +315,9 @@ shinyServer(function(input, output, session){
     build.yaml(yamlpath)
     yamldefault <- downloadLink("yamldd", "here. ")
     
-    tagList(HTML("This website allows users of MaxQuant (from .txt files) and OpenMS (from .mzTab files) to generate quality control reports in Html/PDF format using the R package PTXQC.
-                 In case of processing MaxQuant output, please provide the following .txt files: <br/>
+    tagList(HTML("This website allows users of MaxQuant (from .txt files) and OpenMS (from .mzTab files) to generate quality control reports in Html/PDF format using the R package PTXQC (Version "), 
+            HTML(as.character(packageVersion("PTXQC")), ")"),
+            HTML("In case of processing MaxQuant output, please provide the following .txt files: <br/>
                  Evidence,  MsMs,  MsMsScans,  Parameters,  ProteinGroups,  Summary and Mqpar <br/> <br/>
                  Advanced settings for creating the report can be either set manually or as parameters in a configuration yaml file. 
                  A yaml file with default parameters can be downloaded "), yamldefault,
